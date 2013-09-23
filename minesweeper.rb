@@ -6,8 +6,9 @@ class Board
     @actual_board = (0...size).map { [Tile.new(self)] * size }
     @mines = ((size == 9) ? 10 : 40)
     generate_bombs
-#    complete_actual_board
-    display_actual_board
+    complete_actual_board
+#    display_actual_board
+    display_board(@actual_board)
 
     size.times do |row|
       size.times do |col|
@@ -34,7 +35,7 @@ class Board
 
   #returns all of a tile's neighbors
   #determine bombs surrounding the tile
-  def show_bombs(tile_loc)
+  def find_neighbors(tile_loc)
     neighbors = []
     possible_neighbors = [[-1,-1],[-1,0],[-1,1],[0,1],[1,1],[1,0],[1,-1],[0,-1]]
 
@@ -43,7 +44,10 @@ class Board
       possible_neighbor = [neighbor.first + tile_loc.first, neighbor.last + tile_loc.last]
       neighbors << possible_neighbor if valid?(possible_neighbor)
     end
+    possible_neighbors
+  end
 
+  def show_bombs(tile_loc, neighbors)
     @actual_board[tile_loc.first][tile_loc.last] = Tile.new(self, count_bombs(neighbors))
   end
 
@@ -67,21 +71,63 @@ class Board
         tile = @actual_board[row][col]
         next if tile.is_bomb?
 
-        tile.value = show_bombs([row,col])
+        neighbors = find_neighbors([row,col])
+        tile.value = show_bombs([row,col], neighbors)
       end
     end
   end
 
-  def display_actual_board
-    @actual_board.each_index do |row|
-      @actual_board.each_index do |col|
-        print "#{@actual_board[row][col].value} "
+  def display_board(board)
+    board.each_index do |row|
+      board.each_index do |col|
+        print "#{board[row][col].value} "
 
       end
       puts ""
     end
   end
 
+  def process_input(coords, action)
+    tile = @actual_board[coords.first][coords.last]
+
+    case action
+    when "f"
+
+
+    when "r" # reveal
+      return "Found a bomb! Game over." if tile.is_bomb?
+
+      if tile.value > 0
+        @display_board[coords.first][coords.last] = tile.value
+        display_board(@display_board)
+      else
+        # recursively reveal
+        reveal(coords)
+      end
+    end
+  end
+
+  def reveal(coords)
+    tile = @actual_board[coords.first][coords.last]
+    return nil if tile.value != 0
+
+    stack = [tile]
+    visited = []
+
+    until stack.empty?
+      parent = stack.shift
+      visited << coords
+      neighbor_coords = find_neighbors([coords.first, coords.last])
+
+      neighbor_coords.each do |neighbor_coord|
+        neighbor_tile = @actual_board[neighbor_coord.first][neighbor_coord.last]
+        if !visited.include?(neighbor_coord) && neighbor_tile.value == 0
+          stack << neighbor_coord
+          @display_board[neighbor_coord.first][neighbor_coord.last] = 0
+        end
+      end
+    end
+  end
 end
 
 class Tile
@@ -99,7 +145,25 @@ end
 
 
 class Minesweeper
+  def initialize
+    board = Board.new
+    board.process_input([3,3], "r")
+    board.process_input([1,2], "r")
+    board.process_input([4,6], "r")
+  end
+
+  def get_input
+    # puts "Enter the tile location."
+    # coords = gets.chomp.split(", ").map(&:to_i)
+    # puts "Enter (r) for Reveal or (f) for Flag."
+    # action = gets.chomp
+    board.process_input([3,3], "r")
+    board.process_input([1,2], "r")
+    board.process_input([4,6], "r")
+
+  end
+
 end
 
 
-board = Board.new
+ms = Minesweeper.new
