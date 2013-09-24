@@ -135,6 +135,9 @@ class Board
         if !visited.include?(neighbor_coord) && !neighbor_tile.flagged? && neighbor_tile.value == 0
           stack << neighbor_coord
           @display_board[neighbor_coord.first][neighbor_coord.last] = Tile.new(self, "_")
+          neighbor_coords = find_neighbors([neighbor_coord.first, neighbor_coord.last])
+        elsif !visited.include?(neighbor_coord) && !neighbor_tile.flagged?
+          @display_board[neighbor_coord.first][neighbor_coord.last] = Tile.new(self, neighbor_tile.value)
         end
       end
     end
