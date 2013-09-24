@@ -46,7 +46,7 @@ class Board
     end
 
     @actual_board[tile_loc.first][tile_loc.last] = Tile.new(self, count_bombs(neighbors))
-    possible_neighbors
+    neighbors
   end
 
   # def show_bombs(tile_loc, neighbors)
@@ -103,29 +103,27 @@ class Board
         @display_board[coords.first][coords.last] = tile
         display_board(@display_board)
       else
-#        reveal(coords)
-        @display_board[coords.first][coords.last] = Tile.new(self, 0)
+        reveal(coords)
+#        @display_board[coords.first][coords.last] = Tile.new(self, 0)
       end
     end
   end
 
   def reveal(coords)
-    tile = @actual_board[coords.first][coords.last]
-    return nil if tile.value != 0
-
-    stack = [tile]
+    stack = [[coords.first, coords.last]]
     visited = []
+    @display_board[coords.first][coords.last] = Tile.new(self, 0)
 
     until stack.empty?
       parent = stack.shift
-      visited << coords
-      neighbor_coords = find_neighbors([coords.first, coords.last])
+      visited << [parent.first, parent.last]
+      neighbor_coords = find_neighbors([parent.first, parent.last])
 
       neighbor_coords.each do |neighbor_coord|
         neighbor_tile = @actual_board[neighbor_coord.first][neighbor_coord.last]
         if !visited.include?(neighbor_coord) && neighbor_tile.value == 0
           stack << neighbor_coord
-          @display_board[neighbor_coord.first][neighbor_coord.last] = 0
+          @display_board[neighbor_coord.first][neighbor_coord.last] = Tile.new(self, 0)
         end
       end
     end
