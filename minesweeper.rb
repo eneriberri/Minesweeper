@@ -107,7 +107,7 @@ class Board
       unless tile_display.flagged?
         if tile_actual.is_bomb?
           @display_board[coords.first][coords.last] = Tile.new(self, "b")
-          return true
+          game_over = true
         elsif tile_actual.value > 0
           @display_board[coords.first][coords.last] = tile_actual
 #          display(@display_board)
@@ -117,7 +117,7 @@ class Board
         end
       end
     end
-    return false
+    return game_over
   end
 
   def reveal(coords)
@@ -167,15 +167,18 @@ class Minesweeper
 
   def initialize
     @board = Board.new
-    @game_over = false
     play
   end
 
   def play
-    until @game_over
+    game_over = false
+    until game_over
       @board.display(@board.display_board)
-      @game_over = get_input
+      p "game over before get_input = #{game_over}"
+      game_over = get_input
+      p "game over after get_input = #{game_over}"
     end
+    puts "Found a bomb!"
   end
 
   def get_input
