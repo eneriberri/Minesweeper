@@ -1,4 +1,5 @@
 class Board
+  attr_reader :display_board
   def initialize(size = 9)
 #    @display_board = [["*"] * size] * size
     @size = size
@@ -8,7 +9,8 @@ class Board
     generate_bombs
     complete_actual_board
 #    display_actual_board
-    display_board(@actual_board)
+
+    display(@actual_board)
 
     size.times do |row|
       size.times do |col|
@@ -49,7 +51,12 @@ class Board
 
   def show_bombs(tile_loc, neighbors)
     @actual_board[tile_loc.first][tile_loc.last] = Tile.new(self, count_bombs(neighbors))
+    neighbors
   end
+
+  # def show_bombs(tile_loc, neighbors)
+  #   @actual_board[tile_loc.first][tile_loc.last] = Tile.new(self, count_bombs(neighbors))
+  # end
 
   def valid?(coords)
     coords.none? { |coord| coord < 0 || coord >= @size }
@@ -71,59 +78,71 @@ class Board
         tile = @actual_board[row][col]
         next if tile.is_bomb?
 
-        neighbors = find_neighbors([row,col])
-        tile.value = show_bombs([row,col], neighbors)
+        # neighbors = find_neighbors([row,col])
+        # tile.value = show_bombs([row,col], neighbors)
+        tile.value = find_neighbors([row,col])
       end
     end
   end
 
-  def display_board(board)
+
+  def display(board)
     board.each_index do |row|
       board.each_index do |col|
-        print "#{board[row][col].value} "
-
+        if board[row][col].flagged?
+          print "#{board[row][col].flag} "
+        else
+          print "#{board[row][col].value} "
+        end
       end
       puts ""
     end
   end
 
   def process_input(coords, action)
-    tile = @actual_board[coords.first][coords.last]
+    tile_actual = @actual_board[coords.first][coords.last]
+    tile_display = @display_board[coords.first][coords.last]
 
     case action
     when "f"
-
+     @display_board[coords.first][coords.last] = Tile.new(self, tile_display.value, "f")
+#     display(@display_board)
 
     when "r" # reveal
-      return "Found a bomb! Game over." if tile.is_bomb?
-
-      if tile.value > 0
-        @display_board[coords.first][coords.last] = tile.value
-        display_board(@display_board)
-      else
-        # recursively reveal
-        reveal(coords)
+      unless tile_display.flagged?
+        if tile_actual.is_bomb?
+          @display_board[coords.first][coords.last] = Tile.new(self, "b")
+          game_over = true
+        elsif tile_actual.value > 0
+          @display_board[coords.first][coords.last] = tile_actual
+#          display(@display_board)
+        else
+          reveal(coords)
+          @display_board[coords.first][coords.last] = Tile.new(self, "_")
+        end
       end
     end
+    return game_over
   end
 
   def reveal(coords)
-    tile = @actual_board[coords.first][coords.last]
-    return nil if tile.value != 0
-
-    stack = [tile]
+    stack = [[coords.first, coords.last]]
     visited = []
+    @display_board[coords.first][coords.last] = Tile.new(self, "_")
 
     until stack.empty?
       parent = stack.shift
-      visited << coords
-      neighbor_coords = find_neighbors([coords.first, coords.last])
+      visited << [parent.first, parent.last]
+      neighbor_coords = find_neighbors([parent.first, parent.last])
 
       neighbor_coords.each do |neighbor_coord|
         neighbor_tile = @actual_board[neighbor_coord.first][neighbor_coord.last]
-        if !visited.include?(neighbor_coord) && neighbor_tile.value == 0
+        if !visited.include?(neighbor_coord) && !neighbor_tile.flagged? && neighbor_tile.value == 0
           stack << neighbor_coord
-          @display_board[neighbor_coord.first][neighbor_coord.last] = 0
+          @display_board[neighbor_coord.first][neighbor_coord.last] = Tile.new(self, "_")
+          neighbor_coords = find_neighbors([neighbor_coord.first, neighbor_coord.last])
+        elsif !visited.include?(neighbor_coord) && !neighbor_tile.flagged?
+          @display_board[neighbor_coord.first][neighbor_coord.last] = Tile.new(self, neighbor_tile.value)
         end
       end
     end
@@ -131,14 +150,19 @@ class Board
 end
 
 class Tile
-  attr_accessor :value
-  def initialize(board, value = "*")
+  attr_accessor :value, :flag
+  def initialize(board, value = "*", flag = "")
     @board = board
     @value = value
+    @flag = flag
   end
 
   def is_bomb?
     @value == "b"
+  end
+
+  def flagged?
+    @flag == "f"
   end
 
 end
@@ -146,21 +170,27 @@ end
 
 class Minesweeper
   def initialize
-    board = Board.new
-    board.process_input([3,3], "r")
-    board.process_input([1,2], "r")
-    board.process_input([4,6], "r")
+    @board = Board.new
+    play
+  end
+
+  def play
+    game_over = false
+    until game_over
+      @board.display(@board.display_board)
+      p "game over before get_input = #{game_over}"
+      game_over = get_input
+      p "game over after get_input = #{game_over}"
+    end
+    puts "Found a bomb!"
   end
 
   def get_input
-    # puts "Enter the tile location."
-    # coords = gets.chomp.split(", ").map(&:to_i)
-    # puts "Enter (r) for Reveal or (f) for Flag."
-    # action = gets.chomp
-    board.process_input([3,3], "r")
-    board.process_input([1,2], "r")
-    board.process_input([4,6], "r")
-
+    puts "Enter the tile location."
+    coords = gets.chomp.split(",").map(&:to_i)
+    puts "Enter (r) for Reveal or (f) for Flag."
+    action = gets.chomp
+    @board.process_input(coords, action)
   end
 
 end
